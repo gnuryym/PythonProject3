@@ -11,20 +11,17 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_DIR, "static")
 DATA_FILE = os.path.join(APP_DIR, "data.json")
 
-app = Flask(
-    __name__,
-    static_folder="static",
-    static_url_path=""
-)
+# Один Flask, один static_folder
+app = Flask(__name__, static_folder=STATIC_DIR)
 CORS(app)
 
 # ====== Главная страница ======
 @app.route("/")
 def home():
+    # ищет index.html в static_folder
     return app.send_static_file("index.html")
 
-
-# ====== Data ======
+# ====== Данные ======
 def save_data():
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -71,7 +68,6 @@ def register():
     }
     data["users"].append(user)
     save_data()
-
     return jsonify({"ok": True, "user": {k: user[k] for k in user if k != "password"}})
 
 @app.route("/login", methods=["POST"])
@@ -85,7 +81,6 @@ def login():
     )
     if not user:
         return jsonify({"ok": False}), 401
-
     return jsonify({"ok": True, "user": {k: user[k] for k in user if k != "password"}})
 
 # ====== Избранное ======

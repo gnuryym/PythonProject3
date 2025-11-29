@@ -1,3 +1,7 @@
+import collections.abc
+import collections
+collections.Iterable = collections.abc.Iterable  # патч для совместимости с Python 3.13
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os, json, time
@@ -8,6 +12,7 @@ DATA_FILE = os.path.join(APP_DIR, "data.json")
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
+
 
 # Инициализация данных
 if os.path.exists(DATA_FILE):

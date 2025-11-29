@@ -1,26 +1,22 @@
 import collections.abc
 import collections
-collections.Iterable = collections.abc.Iterable  # патч для Python 3.13
+collections.Iterable = collections.abc.Iterable
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os, json, time
 
-# ====== Пути ======
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_DIR, "static")
 DATA_FILE = os.path.join(APP_DIR, "data.json")
 
-# ====== Инициализация Flask ======
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
 
-# ====== Главная страница ======
 @app.route("/")
 def home():
     return send_from_directory(STATIC_DIR, "index.html")
 
-# ====== Работа с данными ======
 def save_data():
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -32,7 +28,6 @@ else:
     data = {"users": [], "msgs": []}
     save_data()
 
-# ====== API для данных ======
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(data)
@@ -44,7 +39,6 @@ def set_data():
     save_data()
     return jsonify({"ok": True})
 
-# ====== Пользователи ======
 @app.route("/register", methods=["POST"])
 def register():
     d = request.get_json()
@@ -87,12 +81,10 @@ def login():
         return jsonify({"ok": False}), 401
     return jsonify({"ok": True, "user": {k: user[k] for k in user if k != "password"}})
 
-# ====== Список пользователей ======
 @app.route("/users", methods=["GET"])
 def get_users():
     return jsonify([{k: u[k] for k in u if k != "password"} for u in data["users"]])
 
-# ====== Профиль пользователя ======
 @app.route("/profile/<int:uid>", methods=["GET"])
 def get_profile(uid):
     u = next((u for u in data["users"] if u["id"] == uid), None)
@@ -113,7 +105,6 @@ def update_profile(uid):
     save_data()
     return jsonify({"ok": True, "user": {k: u[k] for k in u if k != "password"}})
 
-# ====== Избранное ======
 @app.route("/fav", methods=["POST"])
 def toggle_fav():
     d = request.get_json()
@@ -141,7 +132,6 @@ def get_fav(uid):
         return jsonify([])
     return jsonify(u.get("fav", []))
 
-# ====== Сообщения ======
 @app.route("/msg", methods=["POST"])
 def post_msg():
     d = request.get_json()
@@ -167,11 +157,9 @@ def get_msgs():
     ]
     return jsonify(msgs)
 
-# ====== Страница пользователя ======
 @app.route("/user/<int:uid>")
 def user_page(uid):
     return send_from_directory(STATIC_DIR, "user.html")
 
-# ====== Запуск ======
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

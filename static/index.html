@@ -91,7 +91,6 @@ function show(id){
   document.getElementById(id).style.display='block';
 }
 
-// ------------------ Регистрация ------------------
 async function reg(){
   let name = rL.value.trim();
   let pw = rP.value.trim();
@@ -106,7 +105,6 @@ async function reg(){
   }catch(e){ alert('Ошибка соединения'); console.error(e); }
 }
 
-// ------------------ Вход ------------------
 async function login(){
   let name = lL.value.trim();
   let pw = lP.value.trim();
@@ -118,7 +116,6 @@ async function login(){
   }catch(e){ alert('Ошибка соединения'); console.error(e); }
 }
 
-// ------------------ Главная ------------------
 async function render(){
   if(!user) return;
   hello.innerText = 'Привет, '+user.name;
@@ -135,7 +132,6 @@ async function render(){
       d.className='card';
       d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
 
-      // Кнопка "В избранное"
       let fbtn = document.createElement('button');
       fbtn.innerText = (me.fav||[]).includes(x.id)?'Удалить':'В избранное';
       fbtn.onclick=async ()=>{
@@ -143,7 +139,6 @@ async function render(){
         render();
       };
 
-      // Кнопка "Чат"
       let cbtn=document.createElement('button');
       cbtn.innerText='Чат';
       cbtn.onclick=()=>openChat(x.id,x.name);
@@ -161,7 +156,6 @@ async function render(){
   }catch(e){ console.error(e); }
 }
 
-// ------------------ Личная страница пользователя ------------------
 async function openUserPage(uid){
   try{
     let res = await fetch(`/profile/${uid}`);
@@ -171,21 +165,18 @@ async function openUserPage(uid){
     userRole.innerText = data.role;
     userPortfolio.innerText = data.portfolio || '';
 
-    // Настройка кнопки "В избранное"
     favBtn.innerText = (user.fav||[]).includes(uid)?'Удалить':'В избранное';
     favBtn.onclick = async ()=>{
       await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:user.id,fav:uid})});
       openUserPage(uid); // обновляем кнопку
     };
 
-    // Настройка кнопки "Написать сообщение"
     msgBtn.onclick = ()=>openChat(uid,data.name);
 
     show('userPage');
   }catch(e){ console.error(e); }
 }
 
-// ------------------ Избранное ------------------
 async function showFav(){
   fv.innerHTML=''; show('fav');
   try{
@@ -207,7 +198,6 @@ async function showFav(){
   }catch(e){ console.error(e); }
 }
 
-// ------------------ Профиль ------------------
 async function showProf(){
   try{
     let res = await fetch(`/profile/${user.id}`);
@@ -226,7 +216,6 @@ async function saveProf(){
   }catch(e){ console.error(e); }
 }
 
-// ------------------ Чат ------------------
 async function openChat(toId,toName='GLOBAL'){
   chatTo = {id:toId,name:toName}; show('chat'); await loadChat(); loadList();
 }

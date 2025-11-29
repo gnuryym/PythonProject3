@@ -27,25 +27,19 @@ function getUserIdFromURL() {
     return parseInt(parts[parts.length-1]);
 }
 
-// Загружаем профиль
 async function loadProfile() {
     let uid = getUserIdFromURL();
     try {
-        // Все пользователи
         let res = await fetch('/users');
         let users = await res.json();
         profileUser = users.find(u => u.id === uid);
 
-        // Залогиненный пользователь
-        // Предположим, хранится в localStorage после логина
         loggedUser = JSON.parse(localStorage.getItem('loggedUser'));
 
-        // Вывод данных
         userName.innerText = profileUser.name;
         userRole.innerText = profileUser.role;
         userPortfolio.innerText = profileUser.portfolio || "Портфолио отсутствует";
 
-        // Кнопка Избранное
         favBtn.innerText = (loggedUser.fav||[]).includes(profileUser.id)?'Удалить из избранного':'В избранное';
         favBtn.onclick = async () => {
             await fetch('/fav', {
@@ -53,18 +47,14 @@ async function loadProfile() {
                 headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({user: loggedUser.id, fav: profileUser.id})
             });
-            // Открыть страницу Избранное после добавления
             window.location.href = '/#fav';
         }
 
-        // Кнопка Чат
         chatBtn.onclick = () => {
-            // Сохраняем ID пользователя для чата и редиректим на главную
             localStorage.setItem('chatTo', profileUser.id);
             window.location.href = '/#chat';
         }
 
-        // Кнопка Главная
         mainBtn.onclick = () => {
             window.location.href = '/';
         }
@@ -74,7 +64,6 @@ async function loadProfile() {
     }
 }
 
-// Загрузка профиля при открытии страницы
 loadProfile();
 </script>
 </body>

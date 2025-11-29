@@ -18,7 +18,6 @@ CORS(app)
 # ====== Главная страница ======
 @app.route("/")
 def home():
-    # отдаём index.html из static папки
     return send_from_directory(STATIC_DIR, "index.html")
 
 # ====== Работа с данными ======
@@ -83,6 +82,31 @@ def login():
         return jsonify({"ok": False}), 401
     return jsonify({"ok": True, "user": {k: user[k] for k in user if k != "password"}})
 
+# ====== Список пользователей (без паролей) ======
+@app.route("/users", methods=["GET"])
+def get_users():
+    return jsonify([{k: u[k] for k in u if k != "password"} for u in data["users"]])
+
+# ====== Профиль пользователя ======
+@app.route("/profile/<int:uid>", methods=["GET"])
+def get_profile(uid):
+    u = next((u for u in data["users"] if u["id"] == uid), None)
+    if not u:
+        return jsonify({"ok": False}), 404
+    return jsonify(u)  # фронтенд использует пароль для редактирования
+
+@app.route("/profile/<int:uid>", methods=["POST"])
+def update_profile(uid):
+    u = next((u for u in data["users"] if u["id"] == uid), None)
+    if not u:
+        return jsonify({"ok": False}), 404
+    d = request.get_json()
+    u["name"] = d.get("name", u["name"])
+    u["password"] = d.get("password", u["password"])
+    u["role"] = d.get("role", u["role"])
+    save_data()
+    return jsonify({"ok": True, "user": {k: u[k] for k in u if k != "password"}})
+
 # ====== Избранное ======
 @app.route("/fav", methods=["POST"])
 def toggle_fav():
@@ -103,6 +127,13 @@ def toggle_fav():
 
     save_data()
     return jsonify({"ok": True, "action": action})
+
+@app.route("/fav/<int:uid>", methods=["GET"])
+def get_fav(uid):
+    u = next((u for u in data["users"] if u["id"] == uid), None)
+    if not u:
+        return jsonify([])
+    return jsonify(u.get("fav", []))
 
 # ====== Сообщения ======
 @app.route("/msg", methods=["POST"])
@@ -132,5 +163,4 @@ def get_msgs():
 
 # ====== Запуск ======
 if __name__ == "__main__":
-    # Render передаёт порт через переменную окружения PORT
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

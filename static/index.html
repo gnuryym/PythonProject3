@@ -188,8 +188,7 @@ async function loadList(){
       let d=document.createElement('div'); d.className='dialog'; d.innerText=x.name; d.onclick=()=>openChat(x.id,x.name);
       chatList.appendChild(d);
     });
-    let g=document.createElement('div'); let dg=document.createElement('div');
-    dg.className='dialog'; dg.innerText='Глобальный'; dg.onclick=()=>openChat('GLOBAL','GLOBAL');
+    let dg=document.createElement('div'); dg.className='dialog'; dg.innerText='Глобальный'; dg.onclick=()=>openChat('GLOBAL','GLOBAL');
     chatList.appendChild(dg);
   }catch(e){ console.error(e); }
 }
@@ -202,7 +201,9 @@ async function loadChat(){
     let res = await fetch(url);
     let msgs = await res.json();
     msgs.forEach(m=>{
-      let d=document.createElement('div'); d.className='msg '+(m.sender===user.id?'me':'other'); d.innerText=m.text;
+      let d=document.createElement('div');
+      d.className='msg '+(m.from===user.id?'me':'other');
+      d.innerText=m.text;
       chatWindow.appendChild(d);
     });
     chatWindow.scrollTop=9999;
@@ -211,7 +212,7 @@ async function loadChat(){
 
 async function sendMsg(){
   let t = msgText.value.trim(); if(!t) return; msgText.value='';
-  let body = chatTo.id==='GLOBAL'?{from:user.id,to:'GLOBAL',text:t,time:Date.now()}:{from:user.id,to:chatTo.id,text:t,time:Date.now()};
+  let body = chatTo.id==='GLOBAL'?{from:user.id,to:'GLOBAL',text:t}:{from:user.id,to:chatTo.id,text:t};
   try{
     await fetch('/msg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     await loadChat();
@@ -220,3 +221,4 @@ async function sendMsg(){
 </script>
 </body>
 </html>
+

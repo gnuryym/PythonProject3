@@ -12,14 +12,19 @@ STATIC_DIR = os.path.join(APP_DIR, "static")
 DATA_FILE = os.path.join(APP_DIR, "data.json")
 
 # ====== Инициализация Flask ======
-app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
+# static_url_path=None чтобы не было конфликтов с '/'
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path=None)
 CORS(app)
 
 # ====== Главная страница ======
 @app.route("/")
 def home():
     # отдаём index.html из static папки
-    return send_from_directory(STATIC_DIR, "index.html")
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return send_from_directory(STATIC_DIR, "index.html")
+    else:
+        return "index.html не найден!", 404
 
 # ====== Работа с данными ======
 def save_data():
@@ -132,4 +137,6 @@ def get_msgs():
 
 # ====== Запуск ======
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    print(f"Запуск сервера на порту {port}")
+    app.run(host="0.0.0.0", port=port)

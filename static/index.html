@@ -2,244 +2,52 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>App</title>
-<style>
-body{font-family:Arial,sans-serif;margin:5px}
-.page{display:none}
-input,button,select,textarea{margin:5px;padding:5px;font-size:16px;width:200px}
-.card{border:1px solid #aaa;padding:5px;margin:5px;display:inline-block;width:180px;text-align:center;background:#f4f4f4;border-radius:5px;vertical-align:top}
-button{cursor:pointer}
-#chatList .dialog{border:1px solid #aaa;padding:5px;margin:5px;cursor:pointer;background:#eee}
-#chatWindow{border:1px solid #aaa;padding:5px;width:90%;height:300px;overflow-y:auto;background:#fff}
-.msg{margin:4px;padding:4px;border-radius:5px;max-width:70%;line-height:1.3}
-.me{background:#d1ffd1;text-align:right;margin-left:auto}
-.other{background:#d1e0ff;text-align:left;margin-right:auto}
-</style>
+<title>Профиль пользователя</title>
 </head>
 <body>
-
-<div id="start" class="page" style="display:block">
-<h2>Привет!</h2>
-<button onclick="show('reg')">Регистрация</button>
-<button onclick="show('log')">Вход</button>
-</div>
-
-<div id="reg" class="page">
-<input id="rL" placeholder="Имя">
-<input id="rP" type="password" placeholder="Пароль">
-<select id="rRole"><option>Дизайнер</option><option>Программист</option><option>Стартапер</option></select>
-<button onclick="reg()">Готово</button>
-<button onclick="show('start')">Назад</button>
-</div>
-
-<div id="log" class="page">
-<input id="lL" placeholder="Имя">
-<input id="lP" type="password" placeholder="Пароль">
-<button onclick="login()">Войти</button>
-<button onclick="show('start')">Назад</button>
-</div>
-
-<div id="main" class="page">
-<h2 id="hello"></h2>
-<select id="fil" onchange="render()"><option value="">Все</option><option>Дизайнер</option><option>Программист</option><option>Стартапер</option></select>
-<div id="cards"></div>
-<button onclick="openChat('GLOBAL')">Глобальный чат</button>
-<button onclick="showFav()">Избранное</button>
-<button onclick="showProf()">Профиль</button>
-</div>
-
-<div id="fav" class="page">
-<h3>Избранное</h3>
-<div id="fv"></div>
-<button onclick="show('main')">Главная</button>
-</div>
-
-<div id="prof" class="page">
-<h3>Профиль</h3>
-<input id="pL" placeholder="Имя">
-<input id="pP" type="password" placeholder="Пароль">
-<select id="pR"><option>Дизайнер</option><option>Программист</option><option>Стартапер</option></select>
-<button onclick="saveProf()">Сохранить</button>
-<button onclick="show('main')">Главная</button>
-</div>
-
-<div id="chat" class="page">
-<h3 id="chatWith"></h3>
-<div id="chatList"></div>
-<div id="chatWindow"></div>
-<textarea id="msgText" style="width:90%;height:60px"></textarea><br>
-<button onclick="sendMsg()">Отправить</button>
-<button onclick="show('main')">Назад</button>
-</div>
+<h2 id="uname"></h2>
+<p id="urole"></p>
+<p id="uportfolio"></p>
+<button id="favBtn">В избранное</button>
+<button id="msgBtn">Написать сообщение</button>
 
 <script>
-let user=null, chatTo=null;
+let currentUser = null; // текущий вошедший пользователь
+let profileUserId = null;
+let profileName = null;
 
-function show(id){
-  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-  document.getElementById(id).style.display='block';
-}
+// Получаем id пользователя из URL
+profileUserId = parseInt(window.location.pathname.split("/").pop());
 
-// ------------------ Регистрация ------------------
-async function reg(){
-  let name = rL.value.trim();
-  let pw = rP.value.trim();
-  let role = rRole.value;
-  if(!name || !pw){ alert('Заполните поля'); return; }
+async function loadProfile(){
   try{
-    let res = await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw,role})});
+    let res = await fetch('/profile/'+profileUserId);
     let data = await res.json();
-    if(data.ok){ user = data.user; render(); show('main'); }
-    else{ alert(data.error || 'Ошибка'); }
-  }catch(e){ alert('Ошибка соединения'); console.error(e); }
+    document.getElementById('uname').innerText = data.name;
+    document.getElementById('urole').innerText = data.role;
+    document.getElementById('uportfolio').innerText = data.portfolio || 'Портфолио пусто';
+    profileName = data.name;
+  }catch(e){ console.error(e); }
 }
 
-// ------------------ Вход ------------------
-async function login(){
-  let name = lL.value.trim();
-  let pw = lP.value.trim();
+// Кнопка "В избранное"
+document.getElementById('favBtn').onclick = async function(){
   try{
-    let res = await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw})});
-    let data = await res.json();
-    if(data.ok){ user = data.user; render(); show('main'); }
-    else{ alert('Неверно'); }
-  }catch(e){ alert('Ошибка соединения'); console.error(e); }
-}
-
-// ------------------ Главная страница ------------------
-async function render(){
-  if(!user) return;
-  hello.innerText = 'Привет, '+user.name;
-  let filter = fil.value.trim().toLowerCase();
-  try{
-    let res = await fetch('/users');
-    let ulist = await res.json();
-    let me = ulist.find(x=>x.id===user.id);
-    cards.innerHTML='';
-    ulist.forEach(x=>{
-      if(x.id===user.id) return;
-      if(filter && x.role.toLowerCase()!==filter) return;
-      let d=document.createElement('div');
-      d.className='card';
-      d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
-
-      // Кнопка "В избранное"
-      let fbtn = document.createElement('button');
-      fbtn.innerText = (me.fav||[]).includes(x.id)?'Удалить':'В избранное';
-      fbtn.onclick=async ()=>{
-        await fetch('/fav',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({user:me.id,fav:x.id})
-        });
-        render();
-      };
-
-      // Кнопка "Чат"
-      let cbtn=document.createElement('button');
-      cbtn.innerText='Чат';
-      cbtn.onclick=()=>openChat(x.id,x.name);
-
-      // Ссылка на профиль
-      let profileLink = document.createElement('a');
-      profileLink.href = '/user/' + x.id;
-      profileLink.innerText = 'Открыть профиль';
-      profileLink.style.display = 'block';
-
-      // Добавляем все элементы в карточку
-      d.appendChild(fbtn);
-      d.appendChild(cbtn);
-      d.appendChild(profileLink);
-      cards.appendChild(d);
+    await fetch('/fav',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user: currentUser.id, fav: profileUserId})
     });
-  }catch(e){ console.error(e); }
+    alert('Добавлено в избранное');
+  } catch(e){ console.error(e); }
+};
+
+// Кнопка "Написать сообщение"
+document.getElementById('msgBtn').onclick = function(){
+  openChat(profileUserId, profileName); // используем существующую функцию
 }
 
-// ------------------ Избранное ------------------
-async function showFav(){
-  fv.innerHTML=''; show('fav');
-  try{
-    let res = await fetch(`/fav/${user.id}`);
-    let favIds = await res.json();
-    if(favIds.length===0){ fv.innerText='Пусто'; return; }
-    let res2 = await fetch('/users'); let ulist = await res2.json();
-    favIds.forEach(fid=>{
-      let x = ulist.find(u=>u.id===fid); if(!x) return;
-      let d=document.createElement('div'); d.className='card';
-      d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
-      let b=document.createElement('button'); b.innerText='Удалить';
-      b.onclick=async ()=>{
-        await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:user.id,fav:x.id})});
-        showFav();
-      };
-      d.appendChild(b); fv.appendChild(d);
-    });
-  }catch(e){ console.error(e); }
-}
-
-// ------------------ Профиль ------------------
-async function showProf(){
-  try{
-    let res = await fetch(`/profile/${user.id}`);
-    let data = await res.json();
-    pL.value = data.name; pP.value = data.password; pR.value = data.role;
-    show('prof');
-  }catch(e){ console.error(e); }
-}
-
-async function saveProf(){
-  let name = pL.value.trim(), pw = pP.value.trim(), role = pR.value;
-  try{
-    let res = await fetch(`/profile/${user.id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw,role})});
-    let data = await res.json();
-    if(data.ok){ user = data.user; render(); show('main'); }
-  }catch(e){ console.error(e); }
-}
-
-// ------------------ Чат ------------------
-async function openChat(toId,toName='GLOBAL'){
-  chatTo = {id:toId,name:toName}; show('chat'); await loadChat(); loadList();
-}
-
-async function loadList(){
-  chatList.innerHTML='';
-  try{
-    let res = await fetch('/users'); let ulist = await res.json();
-    ulist.forEach(x=>{
-      if(x.id===user.id) return;
-      let d=document.createElement('div'); d.className='dialog'; d.innerText=x.name; d.onclick=()=>openChat(x.id,x.name);
-      chatList.appendChild(d);
-    });
-    let dg=document.createElement('div'); dg.className='dialog'; dg.innerText='Глобальный'; dg.onclick=()=>openChat('GLOBAL','GLOBAL');
-    chatList.appendChild(dg);
-  }catch(e){ console.error(e); }
-}
-
-async function loadChat(){
-  chatWith.innerText = chatTo.name || 'GLOBAL';
-  chatWindow.innerHTML='';
-  try{
-    let url = chatTo.id==='GLOBAL'?'/msg?u2=GLOBAL&u1='+user.id:'/msg?u1='+user.id+'&u2='+chatTo.id;
-    let res = await fetch(url);
-    let msgs = await res.json();
-    msgs.forEach(m=>{
-      let d=document.createElement('div');
-      d.className='msg '+(m.from===user.id?'me':'other');
-      d.innerText=m.text;
-      chatWindow.appendChild(d);
-    });
-    chatWindow.scrollTop=9999;
-  }catch(e){ console.error(e); }
-}
-
-async function sendMsg(){
-  let t = msgText.value.trim(); if(!t) return; msgText.value='';
-  let body = chatTo.id==='GLOBAL'?{from:user.id,to:'GLOBAL',text:t}:{from:user.id,to:chatTo.id,text:t};
-  try{
-    await fetch('/msg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    await loadChat();
-  }catch(e){ console.error(e); }
-}
+loadProfile();
 </script>
 </body>
 </html>

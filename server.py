@@ -48,9 +48,10 @@ def set_data():
 @app.route("/register", methods=["POST"])
 def register():
     d = request.get_json()
-    name = d.get("name")
-    password = d.get("password")
+    name = (d.get("name") or "").strip()
+    password = (d.get("password") or "").strip()
     role = d.get("role", "")
+    portfolio = d.get("portfolio", "")
 
     if not name or not password:
         return jsonify({"ok": False, "error": "empty"}), 400
@@ -63,6 +64,7 @@ def register():
         "name": name,
         "password": password,
         "role": role,
+        "portfolio": portfolio,
         "fav": []
     }
     data["users"].append(user)
@@ -72,17 +74,20 @@ def register():
 @app.route("/login", methods=["POST"])
 def login():
     d = request.get_json()
+    name_input = (d.get("name") or "").strip().lower()
+    password_input = (d.get("password") or "").strip()
+
     user = next(
         (u for u in data["users"]
-         if u["name"].lower() == d.get("name","").lower()
-         and u["password"] == d.get("password")),
+         if u["name"].lower() == name_input
+         and u["password"] == password_input),
         None
     )
     if not user:
         return jsonify({"ok": False}), 401
     return jsonify({"ok": True, "user": {k: user[k] for k in user if k != "password"}})
 
-# ====== Список пользователей (без паролей) ======
+# ====== Список пользователей ======
 @app.route("/users", methods=["GET"])
 def get_users():
     return jsonify([{k: u[k] for k in u if k != "password"} for u in data["users"]])
@@ -93,7 +98,7 @@ def get_profile(uid):
     u = next((u for u in data["users"] if u["id"] == uid), None)
     if not u:
         return jsonify({"ok": False}), 404
-    return jsonify(u)  # фронтенд использует пароль для редактирования
+    return jsonify(u)
 
 @app.route("/profile/<int:uid>", methods=["POST"])
 def update_profile(uid):
@@ -104,6 +109,7 @@ def update_profile(uid):
     u["name"] = d.get("name", u["name"])
     u["password"] = d.get("password", u["password"])
     u["role"] = d.get("role", u["role"])
+    u["portfolio"] = d.get("portfolio", u.get("portfolio",""))
     save_data()
     return jsonify({"ok": True, "user": {k: u[k] for k in u if k != "password"}})
 
@@ -161,17 +167,10 @@ def get_msgs():
     ]
     return jsonify(msgs)
 
-# ====== Страница отдельного пользователя ======
+# ====== Страница пользователя ======
 @app.route("/user/<int:uid>")
 def user_page(uid):
     return send_from_directory(STATIC_DIR, "user.html")
-
-@app.route("/api/user/<int:uid>")
-def api_get_user(uid):
-    u = next((x for x in data["users"] if x["id"] == uid), None)
-    if not u:
-        return jsonify({"ok": False}), 404
-    return jsonify(u)
 
 # ====== Запуск ======
 if __name__ == "__main__":

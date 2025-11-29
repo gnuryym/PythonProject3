@@ -2,26 +2,26 @@ import collections.abc
 import collections
 collections.Iterable = collections.abc.Iterable  # патч для Python 3.13
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os, json, time
 
-# ====== Инициализация ======
+# ====== Пути ======
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_DIR, "static")
 DATA_FILE = os.path.join(APP_DIR, "data.json")
 
-# Один Flask, один static_folder
-app = Flask(__name__, static_folder=STATIC_DIR)
+# ====== Инициализация Flask ======
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
 
 # ====== Главная страница ======
 @app.route("/")
 def home():
-    # ищет index.html в static_folder
-    return app.send_static_file("index.html")
+    # отдаём index.html из static папки
+    return send_from_directory(STATIC_DIR, "index.html")
 
-# ====== Данные ======
+# ====== Работа с данными ======
 def save_data():
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -33,7 +33,7 @@ else:
     data = {"users": [], "msgs": []}
     save_data()
 
-# ====== API ======
+# ====== API для данных ======
 @app.route("/api/data", methods=["GET"])
 def get_data():
     return jsonify(data)

@@ -31,10 +31,6 @@ def save_data():
         json.dump(new_data, f, ensure_ascii=False, indent=2)
     return jsonify({"status": "ok"})
 
-@app.route("/")
-def index():
-    return app.send_static_file("index.html")
-
 # Инициализация данных
 if os.path.exists(DATA_FILE):
     with open(DATA_FILE, "r", encoding="utf-8") as f:

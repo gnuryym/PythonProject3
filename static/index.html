@@ -7,7 +7,6 @@
 body{font-family:Arial,sans-serif;margin:5px}
 .page{display:none}
 input,button,select,textarea{margin:5px;padding:5px;font-size:16px;width:200px}
-textarea{width:200px;height:60px}
 .card{border:1px solid #aaa;padding:5px;margin:5px;display:inline-block;width:180px;text-align:center;background:#f4f4f4;border-radius:5px;vertical-align:top}
 button{cursor:pointer}
 #chatList .dialog{border:1px solid #aaa;padding:5px;margin:5px;cursor:pointer;background:#eee}
@@ -28,8 +27,8 @@ button{cursor:pointer}
 <div id="reg" class="page">
 <input id="rL" placeholder="Имя">
 <input id="rP" type="password" placeholder="Пароль">
+<textarea id="rPortfolio" placeholder="Портфолио (опишите себя)" style="width:200px;height:60px"></textarea>
 <select id="rRole"><option>Дизайнер</option><option>Программист</option><option>Стартапер</option></select>
-<textarea id="rPortfolio" placeholder="Портфолио"></textarea>
 <button onclick="reg()">Готово</button>
 <button onclick="show('start')">Назад</button>
 </div>
@@ -60,9 +59,18 @@ button{cursor:pointer}
 <h3>Профиль</h3>
 <input id="pL" placeholder="Имя">
 <input id="pP" type="password" placeholder="Пароль">
+<textarea id="pPortfolio" style="width:200px;height:60px"></textarea>
 <select id="pR"><option>Дизайнер</option><option>Программист</option><option>Стартапер</option></select>
-<textarea id="pPortfolio" placeholder="Портфолио"></textarea>
 <button onclick="saveProf()">Сохранить</button>
+<button onclick="show('main')">Главная</button>
+</div>
+
+<div id="userPage" class="page">
+<h3 id="userName"></h3>
+<p id="userRole"></p>
+<p id="userPortfolio"></p>
+<button id="favBtn">В избранное</button>
+<button id="msgBtn">Написать сообщение</button>
 <button onclick="show('main')">Главная</button>
 </div>
 
@@ -76,7 +84,7 @@ button{cursor:pointer}
 </div>
 
 <script>
-let user=null, chatTo=null;
+let user=null, chatTo=null, selectedUser=null;
 
 function show(id){
   document.querySelectorAll('.page').forEach(p=>p.style.display='none');
@@ -87,15 +95,11 @@ function show(id){
 async function reg(){
   let name = rL.value.trim();
   let pw = rP.value.trim();
-  let role = rRole.value;
   let portfolio = rPortfolio.value.trim();
+  let role = rRole.value;
   if(!name || !pw){ alert('Заполните поля'); return; }
   try{
-    let res = await fetch('/register',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,password:pw,role,portfolio})
-    });
+    let res = await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw,role,portfolio})});
     let data = await res.json();
     if(data.ok){ user = data.user; render(); show('main'); }
     else{ alert(data.error || 'Ошибка'); }
@@ -107,18 +111,14 @@ async function login(){
   let name = lL.value.trim();
   let pw = lP.value.trim();
   try{
-    let res = await fetch('/login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,password:pw})
-    });
+    let res = await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw})});
     let data = await res.json();
     if(data.ok){ user = data.user; render(); show('main'); }
     else{ alert('Неверно'); }
   }catch(e){ alert('Ошибка соединения'); console.error(e); }
 }
 
-// ------------------ Главная страница ------------------
+// ------------------ Главная ------------------
 async function render(){
   if(!user) return;
   hello.innerText = 'Привет, '+user.name;
@@ -133,17 +133,13 @@ async function render(){
       if(filter && x.role.toLowerCase()!==filter) return;
       let d=document.createElement('div');
       d.className='card';
-      d.innerHTML=`<b>${x.name}</b><br>${x.role}<br>${x.portfolio||''}`;
+      d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
 
       // Кнопка "В избранное"
       let fbtn = document.createElement('button');
       fbtn.innerText = (me.fav||[]).includes(x.id)?'Удалить':'В избранное';
       fbtn.onclick=async ()=>{
-        await fetch('/fav',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({user:me.id,fav:x.id})
-        });
+        await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:me.id,fav:x.id})});
         render();
       };
 
@@ -153,16 +149,39 @@ async function render(){
       cbtn.onclick=()=>openChat(x.id,x.name);
 
       // Ссылка на профиль
-      let profileLink = document.createElement('a');
-      profileLink.href = '/user/' + x.id;
+      let profileLink = document.createElement('button');
       profileLink.innerText = 'Открыть профиль';
-      profileLink.style.display = 'block';
+      profileLink.onclick = ()=>openUserPage(x.id);
 
       d.appendChild(fbtn);
       d.appendChild(cbtn);
       d.appendChild(profileLink);
       cards.appendChild(d);
     });
+  }catch(e){ console.error(e); }
+}
+
+// ------------------ Личная страница пользователя ------------------
+async function openUserPage(uid){
+  try{
+    let res = await fetch(`/profile/${uid}`);
+    let data = await res.json();
+    selectedUser = data;
+    userName.innerText = data.name;
+    userRole.innerText = data.role;
+    userPortfolio.innerText = data.portfolio || '';
+
+    // Настройка кнопки "В избранное"
+    favBtn.innerText = (user.fav||[]).includes(uid)?'Удалить':'В избранное';
+    favBtn.onclick = async ()=>{
+      await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:user.id,fav:uid})});
+      openUserPage(uid); // обновляем кнопку
+    };
+
+    // Настройка кнопки "Написать сообщение"
+    msgBtn.onclick = ()=>openChat(uid,data.name);
+
+    show('userPage');
   }catch(e){ console.error(e); }
 }
 
@@ -177,7 +196,7 @@ async function showFav(){
     favIds.forEach(fid=>{
       let x = ulist.find(u=>u.id===fid); if(!x) return;
       let d=document.createElement('div'); d.className='card';
-      d.innerHTML=`<b>${x.name}</b><br>${x.role}<br>${x.portfolio||''}`;
+      d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
       let b=document.createElement('button'); b.innerText='Удалить';
       b.onclick=async ()=>{
         await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:user.id,fav:x.id})});
@@ -193,8 +212,7 @@ async function showProf(){
   try{
     let res = await fetch(`/profile/${user.id}`);
     let data = await res.json();
-    pL.value = data.name; pP.value = data.password; pR.value = data.role;
-    pPortfolio.value = data.portfolio || '';
+    pL.value = data.name; pP.value = data.password; pR.value = data.role; pPortfolio.value = data.portfolio || '';
     show('prof');
   }catch(e){ console.error(e); }
 }
@@ -202,11 +220,7 @@ async function showProf(){
 async function saveProf(){
   let name = pL.value.trim(), pw = pP.value.trim(), role = pR.value, portfolio = pPortfolio.value.trim();
   try{
-    let res = await fetch(`/profile/${user.id}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,password:pw,role,portfolio})
-    });
+    let res = await fetch(`/profile/${user.id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,password:pw,role,portfolio})});
     let data = await res.json();
     if(data.ok){ user = data.user; render(); show('main'); }
   }catch(e){ console.error(e); }

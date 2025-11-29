@@ -3,48 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <title>Профиль пользователя</title>
+<style>
+body{font-family:Arial,sans-serif;margin:5px}
+.card{border:1px solid #aaa;padding:5px;margin:5px;display:inline-block;width:180px;text-align:center;background:#f4f4f4;border-radius:5px;vertical-align:top}
+button{cursor:pointer;margin:5px;padding:5px}
+</style>
 </head>
 <body>
-<h2 id="uname"></h2>
-<p id="urole"></p>
-<p id="uportfolio"></p>
-<button id="favBtn">В избранное</button>
-<button id="msgBtn">Написать сообщение</button>
+
+<h2 id="userName"></h2>
+<p id="userRole"></p>
+<p id="userPortfolio"></p>
+
+<button id="favBtn"></button>
+<button id="chatBtn">Написать сообщение</button>
+<button id="mainBtn">В главную</button>
 
 <script>
-let currentUser = null; // текущий вошедший пользователь
-let profileUserId = null;
-let profileName = null;
+let user = null;  // Текущий залогиненный пользователь (с сервера)
+let profileUser = null; // Пользователь, чей профиль открыт
 
-// Получаем id пользователя из URL
-profileUserId = parseInt(window.location.pathname.split("/").pop());
-
-async function loadProfile(){
-  try{
-    let res = await fetch('/profile/'+profileUserId);
-    let data = await res.json();
-    document.getElementById('uname').innerText = data.name;
-    document.getElementById('urole').innerText = data.role;
-    document.getElementById('uportfolio').innerText = data.portfolio || 'Портфолио пусто';
-    profileName = data.name;
-  }catch(e){ console.error(e); }
+function getUserIdFromURL() {
+  let parts = window.location.pathname.split('/');
+  return parseInt(parts[parts.length-1]);
 }
 
-// Кнопка "В избранное"
-document.getElementById('favBtn').onclick = async function(){
-  try{
-    await fetch('/fav',{
+// Загружаем профиль
+async function loadProfile() {
+  let uid = getUserIdFromURL();
+  try {
+    // Получаем все пользователи
+    let res = await fetch('/users');
+    let ulist = await res.json();
+    let loggedRes = await fetch('/profile/' + uid); // профиль открытого пользователя
+    profileUser = await loggedRes.json();
+
+    user = ulist.find(x => x.id === profileUser.id); // текущий пользователь в списке
+
+    // Выводим данные
+    userName.innerText = profileUser.name;
+    userRole.innerText = profileUser.role;
+    userPortfolio.innerText = profileUser.portfolio || "Портфолио отсутствует";
+
+    // Кнопка избранное
+    favBtn.innerText = (profileUser.fav||[]).includes(profileUser.id)?'Удалить из избранного':'В избранное';
+    favBtn.onclick = async () => {
+      await fetch('/fav', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({user: currentUser.id, fav: profileUserId})
-    });
-    alert('Добавлено в избранное');
-  } catch(e){ console.error(e); }
-};
+        body: JSON.stringify({user: user.id, fav: profileUser.id})
+      });
+      alert('Действие выполнено');
+    }
 
-// Кнопка "Написать сообщение"
-document.getElementById('msgBtn').onclick = function(){
-  openChat(profileUserId, profileName); // используем существующую функцию
+    // Кнопка чат
+    chatBtn.onclick = () => {
+      window.location.href = '/'; // тут лучше сделать редирект на главный фронт, открыть чат с этим человеком
+      alert('Функция чата открывается на главной странице');
+    }
+
+    // Кнопка главная
+    mainBtn.onclick = () => {
+      window.location.href = '/';
+    }
+
+  } catch(e) { console.error(e); }
 }
 
 loadProfile();

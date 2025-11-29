@@ -20,8 +20,9 @@ CORS(app)
 
 # ====== Главная страница ======
 @app.route("/")
-def index():
+def home():
     return app.send_static_file("index.html")
+
 
 # ====== Data ======
 def save_data():

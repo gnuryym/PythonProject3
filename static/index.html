@@ -119,16 +119,38 @@ async function render(){
     ulist.forEach(x=>{
       if(x.id===user.id) return;
       if(filter && x.role.toLowerCase()!==filter) return;
-      let d=document.createElement('div'); d.className='card';
+      let d=document.createElement('div');
+      d.className='card';
       d.innerHTML=`<b>${x.name}</b><br>${x.role}`;
+
+      // Кнопка "В избранное"
       let fbtn = document.createElement('button');
       fbtn.innerText = (me.fav||[]).includes(x.id)?'Удалить':'В избранное';
       fbtn.onclick=async ()=>{
-        await fetch('/fav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:me.id,fav:x.id})});
+        await fetch('/fav',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({user:me.id,fav:x.id})
+        });
         render();
       };
-      let cbtn=document.createElement('button'); cbtn.innerText='Чат'; cbtn.onclick=()=>openChat(x.id,x.name);
-      d.appendChild(fbtn); d.appendChild(cbtn); cards.appendChild(d);
+
+      // Кнопка "Чат"
+      let cbtn=document.createElement('button');
+      cbtn.innerText='Чат';
+      cbtn.onclick=()=>openChat(x.id,x.name);
+
+      // Ссылка на профиль
+      let profileLink = document.createElement('a');
+      profileLink.href = '/user/' + x.id;
+      profileLink.innerText = 'Открыть профиль';
+      profileLink.style.display = 'block';
+
+      // Добавляем все элементы в карточку
+      d.appendChild(fbtn);
+      d.appendChild(cbtn);
+      d.appendChild(profileLink);
+      cards.appendChild(d);
     });
   }catch(e){ console.error(e); }
 }
@@ -221,4 +243,3 @@ async function sendMsg(){
 </script>
 </body>
 </html>
-

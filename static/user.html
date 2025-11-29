@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Профиль пользователя</title>
+<style>
+body{font-family:Arial,sans-serif;margin:5px}
+button{margin:5px;padding:5px;font-size:16px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="profile"></div>
+<button id="chatBtn">Чат с этим человеком</button>
+<button id="favBtn">В избранное</button>
+<button onclick="location.href='/'">Назад</button>
+
+<script>
+let uid = parseInt(location.pathname.split('/').pop()); // ID из URL
+let currentUserId = 1; // Заменить на текущего пользователя из вашего фронта
+
+async function loadProfile(){
+    try{
+        let res = await fetch('/api/user/'+uid);
+        let u = await res.json();
+        document.getElementById('profile').innerHTML = `<h2>${u.name}</h2><p>${u.role}</p>`;
+    }catch(e){ console.error(e); }
+}
+
+document.getElementById('favBtn').onclick = async ()=>{
+    try{
+        await fetch('/fav', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({user:currentUserId, fav:uid})
+        });
+        alert('Добавлено в избранное');
+    }catch(e){ console.error(e); }
+}
+
+document.getElementById('chatBtn').onclick = ()=>{
+    location.href = '/?chat='+uid; // Можно реализовать открытие чата по ID
+}
+
+loadProfile();
+</script>
+</body>
+</html>

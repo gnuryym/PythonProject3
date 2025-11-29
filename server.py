@@ -161,6 +161,18 @@ def get_msgs():
     ]
     return jsonify(msgs)
 
+# ====== Страница отдельного пользователя ======
+@app.route("/user/<int:uid>")
+def user_page(uid):
+    return send_from_directory(STATIC_DIR, "user.html")
+
+@app.route("/api/user/<int:uid>")
+def api_get_user(uid):
+    u = next((x for x in data["users"] if x["id"] == uid), None)
+    if not u:
+        return jsonify({"ok": False}), 404
+    return jsonify(u)
+
 # ====== Запуск ======
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

@@ -53,10 +53,6 @@ def save_data():
 def index():
     return send_from_directory(STATIC_DIR, "index.html")
 
-@app.route("/<path:path>")
-def static_proxy(path):
-    return send_from_directory(STATIC_DIR, path)
-
 # ====== Пользователи ======
 @app.route("/register", methods=["POST"])
 def register():

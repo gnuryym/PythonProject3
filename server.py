@@ -13,6 +13,27 @@ DATA_FILE = os.path.join(APP_DIR, "data.json")
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
 
+# Получение данных
+@app.route("/api/data", methods=["GET"])
+def get_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        data = {}
+    return jsonify(data)
+
+# Запись данных
+@app.route("/api/data", methods=["POST"])
+def save_data():
+    new_data = request.json  # данные приходят в формате JSON
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(new_data, f, ensure_ascii=False, indent=2)
+    return jsonify({"status": "ok"})
+
+@app.route("/")
+def index():
+    return app.send_static_file("index.html")
 
 # Инициализация данных
 if os.path.exists(DATA_FILE):
